@@ -192,5 +192,5 @@ Devise.setup do |config|
   config.sign_out_via = :delete
 
   # don't serialize tokens
-  Devise::Models::Authenticatable::BLACKLIST_FOR_SERIALIZATION << :tokens
+  Devise::Models::Authenticatable::BLACKLIST_FOR_SERIALIZATION << :authentication_tokens
 end

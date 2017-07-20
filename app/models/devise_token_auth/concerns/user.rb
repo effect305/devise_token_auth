@@ -24,7 +24,7 @@ module DeviseTokenAuth::Concerns::User
     end
 
     unless tokens_has_json_column_type?
-      serialize :tokens, JSON
+      serialize :authentication_tokens, JSON
     end
 
     if DeviseTokenAuth.default_callbacks
@@ -95,7 +95,7 @@ module DeviseTokenAuth::Concerns::User
 
 
     def tokens_has_json_column_type?
-      database_exists? && table_exists? && self.columns_hash['tokens'] && self.columns_hash['tokens'].type.in?([:json, :jsonb])
+      database_exists? && table_exists? && self.columns_hash['authentication_tokens'] && self.columns_hash['authentication_tokens'].type.in?([:json, :jsonb])
     end
 
     def database_exists?
@@ -107,7 +107,7 @@ module DeviseTokenAuth::Concerns::User
   def valid_token?(token, client_id='default')
     client_id ||= 'default'
 
-    return false unless self.tokens[client_id]
+    return false unless self.authentication_tokens[client_id]
 
     return true if token_is_current?(token, client_id)
     return true if token_can_be_reused?(token, client_id)
@@ -126,8 +126,8 @@ module DeviseTokenAuth::Concerns::User
 
   def token_is_current?(token, client_id)
     # ghetto HashWithIndifferentAccess
-    expiry     = self.tokens[client_id]['expiry'] || self.tokens[client_id][:expiry]
-    token_hash = self.tokens[client_id]['token'] || self.tokens[client_id][:token]
+    expiry     = self.authentication_tokens[client_id]['expiry'] || self.authentication_tokens[client_id][:expiry]
+    token_hash = self.authentication_tokens[client_id]['token'] || self.authentication_tokens[client_id][:token]
 
     return true if (
       # ensure that expiry and token are set
@@ -137,7 +137,7 @@ module DeviseTokenAuth::Concerns::User
       DateTime.strptime(expiry.to_s, '%s') > Time.now &&
 
       # ensure that the token is valid
-      DeviseTokenAuth::Concerns::User.tokens_match?(token_hash, token)
+      DeviseTokenAuth::Concerns::User.authentication_tokens_match?(token_hash, token)
     )
   end
 
@@ -145,8 +145,8 @@ module DeviseTokenAuth::Concerns::User
   # allow batch requests to use the previous token
   def token_can_be_reused?(token, client_id)
     # ghetto HashWithIndifferentAccess
-    updated_at = self.tokens[client_id]['updated_at'] || self.tokens[client_id][:updated_at]
-    last_token = self.tokens[client_id]['last_token'] || self.tokens[client_id][:last_token]
+    updated_at = self.authentication_tokens[client_id]['updated_at'] || self.authentication_tokens[client_id][:updated_at]
+    last_token = self.authentication_tokens[client_id]['last_token'] || self.authentication_tokens[client_id][:last_token]
 
 
     return true if (
@@ -170,11 +170,11 @@ module DeviseTokenAuth::Concerns::User
     token_hash   = ::BCrypt::Password.create(token)
     expiry       = (Time.now + DeviseTokenAuth.token_lifespan).to_i
 
-    if self.tokens[client_id] && self.tokens[client_id]['token']
-      last_token = self.tokens[client_id]['token']
+    if self.authentication_tokens[client_id] && self.authentication_tokens[client_id]['token']
+      last_token = self.authentication_tokens[client_id]['token']
     end
 
-    self.tokens[client_id] = {
+    self.authentication_tokens[client_id] = {
       token:      token_hash,
       expiry:     expiry,
       last_token: last_token,
@@ -190,12 +190,12 @@ module DeviseTokenAuth::Concerns::User
 
     # client may use expiry to prevent validation request if expired
     # must be cast as string or headers will break
-    expiry = self.tokens[client_id]['expiry'] || self.tokens[client_id][:expiry]
+    expiry = self.authentication_tokens[client_id]['expiry'] || self.authentication_tokens[client_id][:expiry]
 
     max_clients = DeviseTokenAuth.max_number_of_devices
-    while self.tokens.keys.length > 0 && max_clients < self.tokens.keys.length
-      oldest_token = self.tokens.min_by { |cid, v| v[:expiry] || v["expiry"] }
-      self.tokens.delete(oldest_token.first)
+    while self.authentication_tokens.keys.length > 0 && max_clients < self.authentication_tokens.keys.length
+      oldest_token = self.authentication_tokens.min_by { |cid, v| v[:expiry] || v["expiry"] }
+      self.authentication_tokens.delete(oldest_token.first)
     end
 
     self.save!
@@ -212,14 +212,14 @@ module DeviseTokenAuth::Concerns::User
 
   def build_auth_url(base_url, args)
     args[:uid]    = self.uid
-    args[:expiry] = self.tokens[args[:client_id]]['expiry']
+    args[:expiry] = self.authentication_tokens[args[:client_id]]['expiry']
 
     DeviseTokenAuth::Url.generate(base_url, args)
   end
 
 
   def extend_batch_buffer(token, client_id)
-    self.tokens[client_id]['updated_at'] = Time.now
+    self.authentication_tokens[client_id]['updated_at'] = Time.now
 
     return build_auth_header(token, client_id)
   end
@@ -230,7 +230,7 @@ module DeviseTokenAuth::Concerns::User
 
   def token_validation_response
     self.as_json(except: [
-      :tokens, :created_at, :updated_at
+      :authentication_tokens, :created_at, :updated_at
     ])
   end
 
@@ -238,12 +238,12 @@ module DeviseTokenAuth::Concerns::User
   protected
 
   def set_empty_token_hash
-    self.tokens ||= {} if has_attribute?(:tokens)
+    self.authentication_tokens ||= {} if has_attribute?(:authentication_tokens)
   end
 
   def destroy_expired_tokens
-    if self.tokens
-      self.tokens.delete_if do |cid, v|
+    if self.authentication_tokens
+      self.authentication_tokens.delete_if do |cid, v|
         expiry = v[:expiry] || v["expiry"]
         DateTime.strptime(expiry.to_s, '%s') < Time.now
       end
@@ -251,13 +251,13 @@ module DeviseTokenAuth::Concerns::User
   end
 
   def remove_tokens_after_password_reset
-    there_is_more_than_one_token = self.tokens && self.tokens.keys.length > 1
+    there_is_more_than_one_token = self.authentication_tokens && self.authentication_tokens.keys.length > 1
     should_remove_old_tokens = DeviseTokenAuth.remove_tokens_after_password_reset &&
                                encrypted_password_changed? && there_is_more_than_one_token
 
     if should_remove_old_tokens
-      latest_token = self.tokens.max_by { |cid, v| v[:expiry] || v["expiry"] }
-      self.tokens = { latest_token.first => latest_token.last }
+      latest_token = self.authentication_tokens.max_by { |cid, v| v[:expiry] || v["expiry"] }
+      self.authentication_tokens = { latest_token.first => latest_token.last }
     end
   end
 

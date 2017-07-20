@@ -181,7 +181,7 @@ module DeviseTokenAuth
     end
 
     def set_token_on_resource
-      @resource.tokens[@client_id] = {
+      @resource.authentication_tokens[@client_id] = {
         token: BCrypt::Password.create(@token),
         expiry: @expiry
       }
