@@ -6,7 +6,7 @@ module DeviseTokenAuth
     skip_after_action :update_auth_header, :only => [:create, :destroy]
 
     def create
-      @resource            = resource_class.new(sign_up_params)
+      @resource            = resource_class.new(sign_up_params.except(:format))
       @resource.provider   = "email"
 
       # honor devise configuration for case_insensitive_keys
@@ -75,7 +75,7 @@ module DeviseTokenAuth
 
     def update
       if @resource
-        if @resource.send(resource_update_method, account_update_params)
+        if @resource.send(resource_update_method, account_update_params.except(:format))
           yield @resource if block_given?
           render_update_success
         else
@@ -98,11 +98,11 @@ module DeviseTokenAuth
     end
 
     def sign_up_params
-      params.permit(*params_for_resource(:sign_up))
+      params.permit(*params_for_resource(:sign_up), :format)
     end
 
     def account_update_params
-      params.permit(*params_for_resource(:account_update))
+      params.permit(*params_for_resource(:account_update), :format)
     end
 
     protected
