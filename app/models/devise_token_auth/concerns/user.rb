@@ -3,7 +3,7 @@ require 'bcrypt'
 module DeviseTokenAuth::Concerns::User
   extend ActiveSupport::Concern
 
-  def self.tokens_match?(token_hash, token)
+  def self.authentication_tokens_match?(token_hash, token)
     @token_equality_cache ||= {}
 
     key = "#{token_hash}/#{token}"
