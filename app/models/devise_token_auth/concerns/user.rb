@@ -15,6 +15,9 @@ module DeviseTokenAuth::Concerns::User
   end
 
   included do
+    before_validation do
+      self.uid = email if uid.blank?
+    end
     # Hack to check if devise is already enabled
     unless self.method_defined?(:devise_modules)
       devise :database_authenticatable, :registerable,
