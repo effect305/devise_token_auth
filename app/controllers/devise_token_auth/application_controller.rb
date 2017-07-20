@@ -3,6 +3,10 @@ module DeviseTokenAuth
     include DeviseTokenAuth::Concerns::SetUserByToken
     skip_before_action :verify_authenticity_token
 
+    rescue_from Exception do |exception|
+      render json: {errors: exception.message}, status: 500
+    end
+
     def resource_data(opts={})
       response_data = opts[:resource_json] || @resource.as_json
       if is_json_api
