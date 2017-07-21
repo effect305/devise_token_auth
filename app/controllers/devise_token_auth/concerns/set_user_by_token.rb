@@ -30,7 +30,7 @@ module DeviseTokenAuth::Concerns::SetUserByToken
 
     # parse header for values necessary for authentication
     uid        = request.headers[uid_name] || params[uid_name]
-    @token     ||= request.headers[access_token_name] || params[access_token_name]
+    @devise_auth_token     ||= request.headers[access_token_name] || params[access_token_name]
     @client_id ||= request.headers[client_name] || params[client_name]
 
     # client_id isn't required, set to 'default' if absent
@@ -50,17 +50,17 @@ module DeviseTokenAuth::Concerns::SetUserByToken
     return @resource if @resource && @resource.class == rc
 
     # ensure we clear the client_id
-    if !@token
+    if !@devise_auth_token
       @client_id = nil
       return
     end
 
-    return false unless @token
+    return false unless @devise_auth_token
 
     # mitigate timing attacks by finding by uid instead of auth token
     user = uid && rc.find_by(uid: uid)
 
-    if user && user.valid_token?(@token, @client_id)
+    if user && user.valid_token?(@devise_auth_token, @client_id)
       # sign_in with bypass: true will be deprecated in the next version of Devise
       if self.respond_to? :bypass_sign_in
         bypass_sign_in(user, scope: :user)
@@ -88,7 +88,7 @@ module DeviseTokenAuth::Concerns::SetUserByToken
       # cleared by sign out in the meantime
       return if @resource.reload.authentication_tokens[@client_id].nil?
 
-      auth_header = @resource.build_auth_header(@token, @client_id)
+      auth_header = @resource.build_auth_header(@devise_auth_token, @client_id)
 
       # update the response header
       response.headers.merge!(auth_header)
@@ -111,7 +111,7 @@ module DeviseTokenAuth::Concerns::SetUserByToken
         # extend expiration of batch buffer to account for the duration of
         # this request
         if @is_batch_request
-          auth_header = @resource.extend_batch_buffer(@token, @client_id)
+          auth_header = @resource.extend_batch_buffer(@devise_auth_token, @client_id)
 
         # update Authorization response header with new token
         else
