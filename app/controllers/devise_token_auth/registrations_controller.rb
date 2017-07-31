@@ -51,10 +51,10 @@ module DeviseTokenAuth
           else
             # email auth has been bypassed, authenticate user
             @client_id = SecureRandom.urlsafe_base64(nil, false)
-            @token     = SecureRandom.urlsafe_base64(nil, false)
+            @authentication_token     = SecureRandom.urlsafe_base64(nil, false)
 
             @resource.authentication_tokens[@client_id] = {
-              token: BCrypt::Password.create(@token),
+              token: BCrypt::Password.create(@authentication_token),
               expiry: (Time.now + DeviseTokenAuth.token_lifespan).to_i
             }
 
@@ -124,6 +124,7 @@ module DeviseTokenAuth
     end
 
     def render_create_success
+      response.headers.merge!({'access_token' => @authentication_token})
       render json: {
         status: 'success',
         data:   resource_data

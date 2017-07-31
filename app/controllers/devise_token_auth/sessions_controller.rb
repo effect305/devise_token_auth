@@ -37,10 +37,10 @@ module DeviseTokenAuth
         end
         # create client id
         @client_id = SecureRandom.urlsafe_base64(nil, false)
-        @token     = SecureRandom.urlsafe_base64(nil, false)
+        @authentication_token     = SecureRandom.urlsafe_base64(nil, false)
 
         @resource.authentication_tokens[@client_id] = {
-          token: BCrypt::Password.create(@token),
+          token: BCrypt::Password.create(@authentication_token),
           expiry: (Time.now + DeviseTokenAuth.token_lifespan).to_i
         }
         @resource.save
@@ -61,7 +61,7 @@ module DeviseTokenAuth
       # remove auth instance variables so that after_action does not run
       user = remove_instance_variable(:@resource) if @resource
       client_id = remove_instance_variable(:@client_id) if @client_id
-      remove_instance_variable(:@token) if @token
+      remove_instance_variable(:@authentication_token) if @authentication_token
 
       if user && client_id && user.authentication_tokens[client_id]
         user.authentication_tokens.delete(client_id)
@@ -112,6 +112,7 @@ module DeviseTokenAuth
     end
 
     def render_create_success
+      response.headers.merge!({'access_token' => @authentication_token})
       render json: {
         data: resource_data(resource_json: @resource.token_validation_response)
       }
