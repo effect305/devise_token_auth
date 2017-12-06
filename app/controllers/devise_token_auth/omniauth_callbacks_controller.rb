@@ -163,7 +163,7 @@ module DeviseTokenAuth
     def create_token_info
       # create token info
       @client_id = SecureRandom.urlsafe_base64(nil, false)
-      @token     = SecureRandom.urlsafe_base64(nil, false)
+      @authentication_token     = SecureRandom.urlsafe_base64(nil, false)
       @expiry    = (Time.now + DeviseTokenAuth.token_lifespan).to_i
       @config    = omniauth_params['config_name']
     end
@@ -182,7 +182,7 @@ module DeviseTokenAuth
 
     def set_token_on_resource
       @resource.authentication_tokens[@client_id] = {
-        token: BCrypt::Password.create(@token),
+        token: BCrypt::Password.create(@authentication_token),
         expiry: @expiry
       }
     end
