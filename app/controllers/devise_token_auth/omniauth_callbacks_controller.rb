@@ -83,7 +83,7 @@ module DeviseTokenAuth
         hash[attribute.to_sym] = auth_hash['info'][attribute.to_s] if user.has_attribute?(attribute.to_sym) && auth_hash['info'][attribute.to_s]
         hash
       end
-      attributes = attributes.merge({raw: auth_hash['info']}) if user.has_attribute?(:raw)
+      attributes = attributes.merge({raw: auth_hash}) if user.has_attribute?(:raw)
       user.assign_attributes(attributes)
     end
 
