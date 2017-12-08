@@ -112,9 +112,9 @@ module DeviseTokenAuth
     end
 
     def render_create_success
-      response.headers.merge!({'access-token' => @authentication_token})
+      response.set_header("access_token", @authentication_token)
       render json: {
-        data: resource_data(resource_json: @resource.token_validation_response)
+        data: resource_data(resource_json: @resource.token_validation_response.merge({'access-token' => @authentication_token}))
       }
     end
 

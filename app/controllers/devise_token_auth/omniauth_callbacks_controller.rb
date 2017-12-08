@@ -30,7 +30,7 @@ module DeviseTokenAuth
       create_token_info
       set_token_on_resource
       create_auth_params
-
+      
       if resource_class.devise_modules.include?(:confirmable)
         # don't send confirmation email!!!
         @resource.skip_confirmation!
@@ -79,12 +79,12 @@ module DeviseTokenAuth
 
     # break out provider attribute assignment for easy method extension
     def assign_provider_attrs(user, auth_hash)
-      user.assign_attributes({
-        nickname: auth_hash['info']['nickname'],
-        name:     auth_hash['info']['name'],
-        image:    auth_hash['info']['image'],
-        email:    auth_hash['info']['email']
-      })
+      attributes = devise_parameter_sanitizer.instance_values['permitted'][:sign_up].inject({}) do |hash, attribute|
+        hash[attribute.to_sym] = auth_hash['info'][attribute.to_s] if user.has_attribute?(attribute.to_sym) && auth_hash['info'][attribute.to_s]
+        hash
+      end
+      attributes = attributes.merge({raw: auth_hash['info']}) if user.has_attribute?(:raw)
+      user.assign_attributes(attributes)
     end
 
     # derive allowed params from the standard devise parameter sanitizer
@@ -154,10 +154,10 @@ module DeviseTokenAuth
 
     def set_random_password
       # set crazy password for new oauth users. this is only used to prevent
-        # access via email sign-in.
-        p = SecureRandom.urlsafe_base64(nil, false)
-        @resource.password = p
-        @resource.password_confirmation = p
+      # access via email sign-in.
+      p = SecureRandom.urlsafe_base64(nil, false)
+      @resource.password = p
+      @resource.password_confirmation = p
     end
 
     def create_token_info
@@ -170,11 +170,11 @@ module DeviseTokenAuth
 
     def create_auth_params
       @auth_params = {
-        auth_token:     @token,
-        client_id: @client_id,
-        uid:       @resource.uid,
-        expiry:    @expiry,
-        config:    @config
+          auth_token:     @token,
+          client_id: @client_id,
+          uid:       @resource.uid,
+          expiry:    @expiry,
+          config:    @config
       }
       @auth_params.merge!(oauth_registration: true) if @oauth_registration
       @auth_params
@@ -182,15 +182,15 @@ module DeviseTokenAuth
 
     def set_token_on_resource
       @resource.authentication_tokens[@client_id] = {
-        token: BCrypt::Password.create(@authentication_token),
-        expiry: @expiry
+          token: BCrypt::Password.create(@authentication_token),
+          expiry: @expiry
       }
     end
 
     def render_data(message, data)
       @data = data.merge({
-        message: message
-      })
+                             message: message
+                         })
       render :layout => nil, :template => "devise_token_auth/omniauth_external_window"
     end
 
@@ -211,18 +211,23 @@ module DeviseTokenAuth
 
         # build and redirect to destination url
         redirect_to DeviseTokenAuth::Url.generate(auth_origin_url, data.merge(blank: true))
+      elsif redirect_uri = omniauth_params['redirect']
+        #redirect_uri = "exp://localhost:19000/+expo-auth-session"
+        redirect_to URI.decode(redirect_uri) + 
+          "?#{@resource.token_validation_response.as_json.merge({'access_token' => @authentication_token, 'client' => @client_id}).to_param}"
       else
 
         # there SHOULD always be an auth_origin_url, but if someone does something silly
         # like coming straight to this url or refreshing the page at the wrong time, there may not be one.
         # In that case, just render in plain text the error message if there is one or otherwise
         # a generic message.
+
         fallback_render data[:error] || 'An error occurred'
       end
     end
 
     def fallback_render(text)
-        render inline: %Q|
+      render inline: %Q|
 
             <html>
                     <head></head>
@@ -235,9 +240,9 @@ module DeviseTokenAuth
     def get_resource_from_auth_hash
       # find or create user by provider and provider uid
       @resource = resource_class.where({
-        uid:      auth_hash['uid'],
-        provider: auth_hash['provider']
-      }).first_or_initialize
+                                           uid:      auth_hash['uid'],
+                                           provider: auth_hash['provider']
+                                       }).first_or_initialize
 
       if @resource.new_record?
         @oauth_registration = true
