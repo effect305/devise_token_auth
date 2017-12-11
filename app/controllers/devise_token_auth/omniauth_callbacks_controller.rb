@@ -1,6 +1,8 @@
 module DeviseTokenAuth
   class OmniauthCallbacksController < DeviseTokenAuth::ApplicationController
 
+    rescue_from ActiveRecord::RecordNotUnique, with: :user_exists_with_other_providers
+
     attr_reader :auth_params
     skip_before_action :set_user_by_token, raise: false
     skip_after_action :update_auth_header
@@ -83,7 +85,7 @@ module DeviseTokenAuth
         hash[attribute.to_sym] = auth_hash['info'][attribute.to_s] if user.has_attribute?(attribute.to_sym) && auth_hash['info'][attribute.to_s]
         hash
       end
-      attributes = attributes.merge({raw: auth_hash}) if user.has_attribute?(:raw)
+      attributes = attributes.merge({raw: user.raw.merge({auth_hash['provider'] => auth_hash})}) if user.has_attribute?(:raw)
       user.assign_attributes(attributes)
     end
 
@@ -170,7 +172,7 @@ module DeviseTokenAuth
 
     def create_auth_params
       @auth_params = {
-          auth_token:     @token,
+          auth_token:     @authentication_token,
           client_id: @client_id,
           uid:       @resource.uid,
           expiry:    @expiry,
@@ -257,6 +259,35 @@ module DeviseTokenAuth
       @resource.assign_attributes(extra_params) if extra_params
 
       @resource
+    end
+
+    # RecordNotUnique is thrown when the email has already been used with another
+    # provider, sign that user in since we know the user own the email through
+    # their provider.
+    def user_exists_with_other_providers
+      @resource = @resource.class.find_by_email(@resource.email)
+
+      # sync user info with provider, update/generate auth token
+      assign_provider_attrs(@resource, auth_hash)
+
+      # assign any additional (whitelisted) attributes
+      extra_params = whitelisted_params
+      @resource.assign_attributes(extra_params) if extra_params
+
+      create_token_info
+      set_token_on_resource
+      create_auth_params
+
+      if resource_class.devise_modules.include?(:confirmable)
+        @resource.skip_confirmation!
+      end
+
+      sign_in(:user, @resource, store: false, bypass: false)
+      @resource.save!
+
+      yield @resource if block_given?
+
+      render_data_or_redirect('deliverCredentials', @auth_params.as_json, @resource.as_json)
     end
 
   end
