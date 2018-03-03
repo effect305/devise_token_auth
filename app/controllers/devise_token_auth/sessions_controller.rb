@@ -26,7 +26,7 @@ module DeviseTokenAuth
           q = "BINARY " + q
         end
 
-        @resource = resource_class.where(q, q_value).where(provider: [nil, 'email']).first
+        @resource = resource_class.where(q, q_value).where(provider: [nil, 'phone']).first
       end
 
       if @resource && valid_params?(field, q_value) && (!@resource.respond_to?(:active_for_authentication?) || @resource.active_for_authentication?)
@@ -121,7 +121,7 @@ module DeviseTokenAuth
     def render_create_error_not_confirmed
       render json: {
         success: false,
-        errors: [ I18n.t("devise_token_auth.sessions.not_confirmed", email: @resource.email) ]
+        errors: [ I18n.t("devise_token_auth.sessions.not_confirmed", phone: @resource.phone) ]
       }, status: 401
     end
 

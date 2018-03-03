@@ -2,7 +2,7 @@ class DeviseTokenAuthCreate<%= user_class.pluralize %> < ActiveRecord::Migration
   def change
     create_table(:<%= user_class.pluralize.underscore %>) do |t|
       ## Required
-      t.string :provider, :null => false, :default => "email"
+      t.string :provider, :null => false, :default => "phone"
       t.string :uid, :null => false, :default => ""
 
       ## Database authenticatable
@@ -30,14 +30,14 @@ class DeviseTokenAuthCreate<%= user_class.pluralize %> < ActiveRecord::Migration
 
       ## Lockable
       # t.integer  :failed_attempts, :default => 0, :null => false # Only if lock strategy is :failed_attempts
-      # t.string   :unlock_token # Only if unlock strategy is :email or :both
+      # t.string   :unlock_token # Only if unlock strategy is :phone or :both
       # t.datetime :locked_at
 
       ## User Info
       t.string :name
       t.string :nickname
       t.string :image
-      t.string :email
+      t.string :phone
 
       ## Tokens
       <%= json_supported_database? ? 't.json :tokens' : 't.text :tokens' %>
@@ -45,7 +45,7 @@ class DeviseTokenAuthCreate<%= user_class.pluralize %> < ActiveRecord::Migration
       t.timestamps
     end
 
-    add_index :<%= user_class.pluralize.underscore %>, :email,                unique: true
+    add_index :<%= user_class.pluralize.underscore %>, :phone,                unique: true
     add_index :<%= user_class.pluralize.underscore %>, [:uid, :provider],     unique: true
     add_index :<%= user_class.pluralize.underscore %>, :reset_password_token, unique: true
     add_index :<%= user_class.pluralize.underscore %>, :confirmation_token,   unique: true

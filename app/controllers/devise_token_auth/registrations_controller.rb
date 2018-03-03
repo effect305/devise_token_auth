@@ -7,13 +7,13 @@ module DeviseTokenAuth
 
     def create
       @resource            = resource_class.new(sign_up_params.except(:format))
-      @resource.provider   = "email"
+      @resource.provider   = "phone"
 
       # honor devise configuration for case_insensitive_keys
-      if resource_class.case_insensitive_keys.include?(:email)
-        @resource.email = sign_up_params[:email].try :downcase
+      if resource_class.case_insensitive_keys.include?(:phone)
+        @resource.phone = sign_up_params[:phone].try :downcase
       else
-        @resource.email = sign_up_params[:email]
+        @resource.phone = sign_up_params[:phone]
       end
 
       # give redirect value from params priority
@@ -42,14 +42,14 @@ module DeviseTokenAuth
           yield @resource if block_given?
 
           unless @resource.confirmed?
-            # user will require email authentication
+            # user will require phone authentication
             @resource.send_confirmation_instructions({
               client_config: params[:config_name],
               redirect_url: @redirect_url
             })
 
           else
-            # email auth has been bypassed, authenticate user
+            # phone auth has been bypassed, authenticate user
             @client_id = SecureRandom.urlsafe_base64(nil, false)
             @authentication_token     = SecureRandom.urlsafe_base64(nil, false)
 
@@ -69,7 +69,7 @@ module DeviseTokenAuth
         end
       rescue ActiveRecord::RecordNotUnique
         clean_up_passwords @resource
-        render_create_error_email_already_exists
+        render_create_error_phone_already_exists
       end
     end
 
@@ -139,11 +139,11 @@ module DeviseTokenAuth
       }, status: 422
     end
 
-    def render_create_error_email_already_exists
+    def render_create_error_phone_already_exists
       render json: {
         status: 'error',
         data:   resource_data,
-        errors: [I18n.t("devise_token_auth.registrations.email_already_exists", email: @resource.email)]
+        errors: [I18n.t("devise_token_auth.registrations.phone_already_exists", phone: @resource.phone)]
       }, status: 422
     end
 
