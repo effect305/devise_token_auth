@@ -43,11 +43,7 @@ module DeviseTokenAuth
 
           unless @resource.confirmed?
             # user will require phone authentication
-            @resource.send_confirmation_instructions({
-              client_config: params[:config_name],
-              redirect_url: @redirect_url
-            })
-
+            @resource.send_sms_confirmation_prompt
           else
             # phone auth has been bypassed, authenticate user
             @client_id = SecureRandom.urlsafe_base64(nil, false)

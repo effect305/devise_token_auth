@@ -1,7 +1,7 @@
 module DeviseTokenAuth
   class ConfirmationsController < DeviseTokenAuth::ApplicationController
     def show
-      @resource = resource_class.confirm_by_token(params[:confirmation_token])
+      @resource = resource_class.confirm_by_code(params[:confirmation_code])
 
       if @resource && @resource.id
         # create client id
@@ -19,12 +19,16 @@ module DeviseTokenAuth
 
         yield @resource if block_given?
 
-        redirect_to(@resource.build_auth_url(params[:redirect_url], {
-          token:                        token,
-          client_id:                    client_id,
-          account_confirmation_success: true,
-          config:                       params[:config]
-        }))
+        #redirect_to(@resource.build_auth_url(params[:redirect_url], {
+        #  token:                        token,
+        #  client_id:                    client_id,
+        #  account_confirmation_success: true,
+        #  config:                       params[:config]
+        #}))
+        response.set_header("access_token", token)
+        render json: {
+            data: resource_data(resource_json: @resource.token_validation_response.merge({'access-token' => token}))
+        }
       else
         raise ActionController::RoutingError.new('Not Found')
       end
