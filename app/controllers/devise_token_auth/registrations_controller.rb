@@ -22,10 +22,11 @@ module DeviseTokenAuth
       # fall back to default value if provided
       @redirect_url ||= DeviseTokenAuth.default_confirm_success_url
 
+      # for sms confirmation it's not required
       # success redirect url is required
-      if resource_class.devise_modules.include?(:confirmable) && !@redirect_url
-        return render_create_error_missing_confirm_success_url
-      end
+      #if resource_class.devise_modules.include?(:confirmable) && !@redirect_url
+      #  return render_create_error_missing_confirm_success_url
+      #end
 
       # if whitelist is set, validate redirect_url against whitelist
       if DeviseTokenAuth.redirect_whitelist

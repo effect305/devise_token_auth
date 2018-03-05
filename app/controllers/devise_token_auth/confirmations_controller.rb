@@ -5,14 +5,12 @@ module DeviseTokenAuth
 
       if @resource && @resource.id
         # create client id
-        client_id  = SecureRandom.urlsafe_base64(nil, false)
-        token      = SecureRandom.urlsafe_base64(nil, false)
-        token_hash = BCrypt::Password.create(token)
-        expiry     = (Time.now + DeviseTokenAuth.token_lifespan).to_i
+        @client_id  = SecureRandom.urlsafe_base64(nil, false)
+        @authentication_token = SecureRandom.urlsafe_base64(nil, false)
 
-        @resource.authentication_tokens[client_id] = {
-          token:  token_hash,
-          expiry: expiry
+        @resource.authentication_tokens[@client_id] = {
+          token:  BCrypt::Password.create(@authentication_token),
+          expiry: (Time.now + DeviseTokenAuth.token_lifespan).to_i
         }
 
         @resource.save!
@@ -25,10 +23,19 @@ module DeviseTokenAuth
         #  account_confirmation_success: true,
         #  config:                       params[:config]
         #}))
-        response.set_header("access_token", token)
+        @devise_auth_token = @authentication_token
+
+        update_auth_header
+
+        response.headers.merge!({'access-token' => @authentication_token})
         render json: {
-            data: resource_data(resource_json: @resource.token_validation_response.merge({'access-token' => token}))
+            status: 'success',
+            data:   resource_data
         }
+        #response.set_header("access_token", token)
+        #render json: {
+        #    data: resource_data(resource_json: @resource.token_validation_response.merge({'access-token' => token}))
+        #}
       else
         raise ActionController::RoutingError.new('Not Found')
       end

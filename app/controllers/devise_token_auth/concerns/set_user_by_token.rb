@@ -46,6 +46,9 @@ module DeviseTokenAuth::Concerns::SetUserByToken
       end
     end
 
+    # fail if user is not confirmed
+    return if @resource && !@resource.confirmed
+
     # user has already been found and authenticated
     return @resource if @resource && @resource.class == rc
 
@@ -60,7 +63,7 @@ module DeviseTokenAuth::Concerns::SetUserByToken
     # mitigate timing attacks by finding by uid instead of auth token
     user = uid && rc.find_by(uid: uid)
 
-    if user && user.valid_token?(@devise_auth_token, @client_id)
+    if user && user.valid_token?(@devise_auth_token, @client_id) && user.confirmed
       # sign_in with bypass: true will be deprecated in the next version of Devise
       if self.respond_to? :bypass_sign_in
         bypass_sign_in(user, scope: :user)
