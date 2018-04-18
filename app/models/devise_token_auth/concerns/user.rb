@@ -39,7 +39,7 @@ module DeviseTokenAuth::Concerns::User
     after_initialize :set_empty_token_hash
 
     # get rid of dead tokens
-    before_save :destroy_expired_tokens
+    #before_save :destroy_expired_tokens
 
     # remove old tokens if password has changed
     before_save :remove_tokens_after_password_reset
