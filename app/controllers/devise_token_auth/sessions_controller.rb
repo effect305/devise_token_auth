@@ -26,9 +26,8 @@ module DeviseTokenAuth
           q = "BINARY " + q
         end
 
-        # Removed nil provider to authenticate only users that were created with phone confirmation
-        # Old users with "email" or nil providers will be kept for future usage
-        @resource = resource_class.where(q, q_value).where(provider: 'phone').first
+        # Try to find user with phone provider at first, if there is none then find with provider nil
+        @resource = resource_class.where(q, q_value).where(provider: 'phone').first || resource_class.where(q, q_value).where(provider: nil).first
       end
 
       if @resource && valid_params?(field, q_value) && (!@resource.respond_to?(:active_for_authentication?) || @resource.active_for_authentication?)

@@ -72,6 +72,10 @@ module DeviseTokenAuth::Concerns::SetUserByToken
       end
       return @resource = user
     else
+      # return user if it has no phone
+      return @resource = user if user && user.class == rc && user.phone.blank? && !user.confirmed
+
+      # return nil and
       # zero all values previously set values
       @client_id = nil
       return @resource = nil
