@@ -39,6 +39,7 @@ module DeviseTokenAuth
         # override email confirmation, must be sent manually from ctrl
         resource_class.set_callback("create", :after, :send_on_create_confirmation_instructions)
         resource_class.skip_callback("create", :after, :send_on_create_confirmation_instructions)
+
         if @resource.save
           yield @resource if block_given?
 
@@ -194,6 +195,9 @@ module DeviseTokenAuth
     end
 
     def validate_sign_up_params
+      # destroy unconfirmed users duplicated by phone before create new one
+      resource_class.where(phone: sign_up_params[:phone], provider: 'phone', confirmed: false).destroy_all
+
       validate_post_data sign_up_params, I18n.t("errors.messages.validate_sign_up_params")
     end
 
