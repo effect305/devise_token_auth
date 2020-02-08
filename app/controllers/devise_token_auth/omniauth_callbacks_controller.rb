@@ -156,7 +156,7 @@ module DeviseTokenAuth
 
     def set_random_password
       # set crazy password for new oauth users. this is only used to prevent
-      # access via email sign-in.
+      # access via phone sign-in.
       p = SecureRandom.urlsafe_base64(nil, false)
       @resource.password = p
       @resource.password_confirmation = p
@@ -261,11 +261,11 @@ module DeviseTokenAuth
       @resource
     end
 
-    # RecordNotUnique is thrown when the email has already been used with another
-    # provider, sign that user in since we know the user own the email through
+    # RecordNotUnique is thrown when the phone has already been used with another
+    # provider, sign that user in since we know the user own the phone through
     # their provider.
     def user_exists_with_other_providers
-      @resource = @resource.class.find_by_email(@resource.email)
+      @resource = @resource.class.find_by_phone(@resource.phone)
 
       # sync user info with provider, update/generate auth token
       assign_provider_attrs(@resource, auth_hash)

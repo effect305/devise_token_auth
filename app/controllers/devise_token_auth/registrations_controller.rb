@@ -7,13 +7,13 @@ module DeviseTokenAuth
 
     def create
       @resource            = resource_class.new(sign_up_params.except(:format))
-      @resource.provider   = "email"
+      @resource.provider   = "phone"
 
       # honor devise configuration for case_insensitive_keys
-      if resource_class.case_insensitive_keys.include?(:email)
-        @resource.email = sign_up_params[:email].try :downcase
+      if resource_class.case_insensitive_keys.include?(:phone)
+        @resource.phone = sign_up_params[:phone].try :downcase
       else
-        @resource.email = sign_up_params[:email]
+        @resource.phone = sign_up_params[:phone]
       end
 
       # give redirect value from params priority
@@ -22,10 +22,11 @@ module DeviseTokenAuth
       # fall back to default value if provided
       @redirect_url ||= DeviseTokenAuth.default_confirm_success_url
 
+      # for sms confirmation it's not required
       # success redirect url is required
-      if resource_class.devise_modules.include?(:confirmable) && !@redirect_url
-        return render_create_error_missing_confirm_success_url
-      end
+      #if resource_class.devise_modules.include?(:confirmable) && !@redirect_url
+      #  return render_create_error_missing_confirm_success_url
+      #end
 
       # if whitelist is set, validate redirect_url against whitelist
       if DeviseTokenAuth.redirect_whitelist
@@ -38,18 +39,15 @@ module DeviseTokenAuth
         # override email confirmation, must be sent manually from ctrl
         resource_class.set_callback("create", :after, :send_on_create_confirmation_instructions)
         resource_class.skip_callback("create", :after, :send_on_create_confirmation_instructions)
+
         if @resource.save
           yield @resource if block_given?
 
           unless @resource.confirmed?
-            # user will require email authentication
-            @resource.send_confirmation_instructions({
-              client_config: params[:config_name],
-              redirect_url: @redirect_url
-            })
-
+            # user will require phone authentication
+            @resource.send_sms_confirmation_prompt
           else
-            # email auth has been bypassed, authenticate user
+            # phone auth has been bypassed, authenticate user
             @client_id = SecureRandom.urlsafe_base64(nil, false)
             @authentication_token     = SecureRandom.urlsafe_base64(nil, false)
 
@@ -69,7 +67,7 @@ module DeviseTokenAuth
         end
       rescue ActiveRecord::RecordNotUnique
         clean_up_passwords @resource
-        render_create_error_email_already_exists
+        render_create_error_phone_already_exists
       end
     end
 
@@ -139,11 +137,11 @@ module DeviseTokenAuth
       }, status: 422
     end
 
-    def render_create_error_email_already_exists
+    def render_create_error_phone_already_exists
       render json: {
         status: 'error',
         data:   resource_data,
-        errors: [I18n.t("devise_token_auth.registrations.email_already_exists", email: @resource.email)]
+        errors: [I18n.t("devise_token_auth.registrations.phone_already_exists", phone: @resource.phone)]
       }, status: 422
     end
 
@@ -197,6 +195,9 @@ module DeviseTokenAuth
     end
 
     def validate_sign_up_params
+      # destroy unconfirmed users duplicated by phone before create new one
+      resource_class.where(phone: sign_up_params[:phone], provider: 'phone', confirmed: false).destroy_all
+
       validate_post_data sign_up_params, I18n.t("errors.messages.validate_sign_up_params")
     end
 

@@ -6,8 +6,8 @@ module DeviseTokenAuth
     # this action is responsible for generating password reset tokens and
     # sending emails
     def create
-      unless resource_params[:email]
-        return render_create_error_missing_email
+      unless resource_params[:phone]
+        return render_create_error_missing_phone
       end
 
       # give redirect value from params priority
@@ -28,20 +28,20 @@ module DeviseTokenAuth
       end
 
       # honor devise configuration for case_insensitive_keys
-      if resource_class.case_insensitive_keys.include?(:email)
-        @email = resource_params[:email].downcase
+      if resource_class.case_insensitive_keys.include?(:phone)
+        @phone = resource_params[:phone].downcase
       else
-        @email = resource_params[:email]
+        @phone = resource_params[:phone]
       end
 
-      q = "uid = ? AND provider='email'"
+      q = "uid = ? AND provider='phone'"
 
       # fix for mysql default case insensitivity
       if ActiveRecord::Base.connection.adapter_name.downcase.starts_with? 'mysql'
-        q = "BINARY uid = ? AND provider='email'"
+        q = "BINARY uid = ? AND provider='phone'"
       end
 
-      @resource = resource_class.where(q, @email).first
+      @resource = resource_class.where(q, @phone).first
 
       @errors = nil
       @error_status = 400
@@ -49,8 +49,8 @@ module DeviseTokenAuth
       if @resource
         yield @resource if block_given?
         @resource.send_reset_password_instructions({
-          email: @email,
-          provider: 'email',
+          phone: @phone,
+          provider: 'phone',
           redirect_url: @redirect_url,
           client_config: params[:config_name]
         })
@@ -61,7 +61,7 @@ module DeviseTokenAuth
           @errors = @resource.errors
         end
       else
-        @errors = [I18n.t("devise_token_auth.passwords.user_not_found", email: @email)]
+        @errors = [I18n.t("devise_token_auth.passwords.user_not_found", phone: @phone)]
         @error_status = 404
       end
 
@@ -114,7 +114,7 @@ module DeviseTokenAuth
       end
 
       # make sure account doesn't use oauth2 provider
-      unless @resource.provider == 'email'
+      unless @resource.provider == 'phone'
         return render_update_error_password_not_required
       end
 
@@ -143,10 +143,10 @@ module DeviseTokenAuth
       end
     end
 
-    def render_create_error_missing_email
+    def render_create_error_missing_phone
       render json: {
         success: false,
-        errors: [I18n.t("devise_token_auth.passwords.missing_email")]
+        errors: [I18n.t("devise_token_auth.passwords.missing_phone")]
       }, status: 401
     end
 
@@ -168,7 +168,7 @@ module DeviseTokenAuth
     def render_create_success
       render json: {
         success: true,
-        message: I18n.t("devise_token_auth.passwords.sended", email: @email)
+        message: I18n.t("devise_token_auth.passwords.sended", phone: @phone)
       }
     end
 
@@ -222,7 +222,7 @@ module DeviseTokenAuth
     private
 
     def resource_params
-      params.permit(:email, :password, :password_confirmation, :current_password, :reset_password_token, :redirect_url, :config)
+      params.permit(:phone, :password, :password_confirmation, :current_password, :reset_password_token, :redirect_url, :config)
     end
 
     def password_resource_params

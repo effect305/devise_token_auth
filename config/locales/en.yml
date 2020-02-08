@@ -11,15 +11,17 @@ en:
       missing_confirm_success_url: "Missing 'confirm_success_url' parameter."
       redirect_url_not_allowed: "Redirect to '%{redirect_url}' not allowed."
       email_already_exists: "An account already exists for '%{email}'"
+      phone_already_exists: "An account already exists for '%{phone}'"
       account_with_uid_destroyed: "Account with UID '%{uid}' has been destroyed."
       account_to_destroy_not_found: "Unable to locate account for destruction."
       user_not_found: "User not found."
     passwords:
       missing_email: "You must provide an email address."
+      missing_phone: "You must provide an phone number."
       missing_redirect_url: "Missing redirect URL."
       not_allowed_redirect_url: "Redirect to '%{redirect_url}' not allowed."
       sended: "An email has been sent to '%{email}' containing instructions for resetting your password."
-      user_not_found: "Unable to find user with email '%{email}'."
+      user_not_found: "Unable to find user with phone '%{phone}'."
       password_not_required: "This account does not require a password. Sign in using your '%{provider}' account instead."
       missing_passwords: "You must fill out the fields labeled 'Password' and 'Password confirmation'."
       successfully_updated: "Your password has been successfully updated."
@@ -27,6 +29,7 @@ en:
     messages:
       validate_sign_up_params: "Please submit proper sign up data in request body."
       validate_account_update_params: "Please submit proper account update data in request body."
+      not_phone: "is not an phone"
       not_email: "is not an email"
   devise:
     mailer:

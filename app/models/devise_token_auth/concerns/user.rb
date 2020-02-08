@@ -16,7 +16,7 @@ module DeviseTokenAuth::Concerns::User
 
   included do
     before_validation do
-      self.uid = email if uid.blank?
+      self.uid = phone if uid.blank?
     end
     # Hack to check if devise is already enabled
     unless self.method_defined?(:devise_modules)
@@ -39,7 +39,7 @@ module DeviseTokenAuth::Concerns::User
     after_initialize :set_empty_token_hash
 
     # get rid of dead tokens
-    before_save :destroy_expired_tokens
+    #before_save :destroy_expired_tokens
 
     # remove old tokens if password has changed
     before_save :remove_tokens_after_password_reset
@@ -56,6 +56,11 @@ module DeviseTokenAuth::Concerns::User
     end
 
     def email_changed?
+      false
+    end
+
+    # use this instead of email_changed? for rails >= 5.1
+    def will_save_change_to_email?
       false
     end
 
